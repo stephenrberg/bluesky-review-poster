@@ -2,9 +2,16 @@ import feedparser
 from ConfigurationFile import ConfigurationFile
 from BlueSky import BlueSky
 from datetime import datetime
-from time import  sleep
+from time import mktime, sleep
 import os
+import gc
 import dotenv
+from atproto import Client, client_utils
+import re
+from bs4 import BeautifulSoup
+from letterboxd import check_letterboxd_feed
+from backloggd import check_backloggd_feed
+from serializd import check_serializd_feed
 
 def run():
     print('Process starting. Initializing...')
@@ -21,9 +28,22 @@ def run():
         print("Running in Docker...")
 
     letterboxd_account = os.getenv('LETTERBOXD_ACCOUNT')
+    letterboxd_valid = True
     if letterboxd_account == '' or letterboxd_account is None:
-        valid = False
-        print("Error: Required key [LETTERBOXD_ACCOUNT] missing from configuration file [.env]")
+        letterboxd_valid = False
+        print("Optional key [LETTERBOXD_ACCOUNT] missing from configuration file [.env]")
+
+    serializd_account = os.getenv('SERIALIZD_ACCOUNT')
+    serializd_valid = True
+    if serializd_account == '' or serializd_account is None:
+        serializd_valid = False
+        print("Optional key [SERIALIZD_ACCOUNT] missing from configuration file [.env]")
+
+    backloggd_account = os.getenv('BACKLOGGD_ACCOUNT')
+    backloggd_valid = True
+    if backloggd_account == '' or backloggd_account is None:
+        backloggd_valid = False
+        print("Optional key [BACKLOGGD_ACCOUNT] missing from configuration file [.env]")
 
     bluesky_user = os.getenv('BLUESKY_USERNAME')
     if bluesky_user == '' or bluesky_user is None:
@@ -37,62 +57,19 @@ def run():
 
     if valid:
         print('Configuration is valid.')
-        process_loop(letterboxd_account, bluesky_user, bluesky_app_password)
+        print('Beginning process loop... (no further logs unless posts are made)')
+        while True:
+            with BlueSky(bluesky_user, bluesky_app_password) as bsky_client: #keep bluesky client for entire load of actions - then free it
+                if letterboxd_valid:
+                    check_letterboxd_feed(letterboxd_account, bsky_client)
+                if backloggd_valid:
+                    check_backloggd_feed(backloggd_account, bsky_client)
+                if serializd_valid:
+                    check_serializd_feed(serializd_account, bsky_client)
+            sleep(300) # wait 5 minutes
+
     else:
         print('Could not run due to missing keys. Aborting program...')
-
-def process_loop(letterboxd_account, bluesky_user, bluesky_app_password):
-    print('Starting process loop...')
-
-    #load registry file
-    registry = ConfigurationFile('registry')
-
-    while True:
-        print("Checking for new entries...")
-
-        #now grab rss feed
-        rss_url = f'https://letterboxd.com/{letterboxd_account}/rss'
-        rss_feed = feedparser.parse(rss_url)
-
-        #grab last post
-        last_post = registry.getValue('last_post', None)
-        if last_post is None:
-            last_post = datetime.now().astimezone()
-            registry.setValue('last_post', last_post)
-        else:
-            last_post = datetime.fromisoformat(last_post)
-        print(f'Last Post Timestamp: {last_post}')
-
-        #check for any new diary entries on letterboxd
-        posted = False
-        for item in rss_feed.entries:
-            item_date = datetime.strptime(item.published, '%a, %d %b %Y %H:%M:%S %z')
-            if item_date > last_post:
-                print('New Entry Found...')
-                posted = True
-                post_text = f'Just watched {item.letterboxd_filmtitle} ({item.letterboxd_filmyear}) and rated it {item.letterboxd_memberrating}/5 on Letterboxd:'
-                registry.setValue('last_post_contents', post_text)
-
-                print(f'Sending post: [{post_text}]')
-                send_post(post_text, item.link, bluesky_user, bluesky_app_password)
-
-                registry.setValue('total_posts', registry.getValue('total_posts', 0) + 1)
-            else:
-                break
-
-        if posted:
-            registry.setValue('last_post', datetime.now().astimezone())
-
-        registry.setValue('last_process', datetime.now().astimezone())
-        print("Process complete. Waiting...")
-
-        sleep(300)
-
-def send_post(text, embed, bluesky_user, bluesky_app_password):
-    with BlueSky(bluesky_user, bluesky_app_password) as bs:
-        bs.post_with_link_embed(text, embed)
-
-    return text
 
 #run program
 if __name__ == '__main__':

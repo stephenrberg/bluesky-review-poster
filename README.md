@@ -1,3 +1,9 @@
+# Updated to support Serializd and Backloggd!
+I hacked on the original letterboxd poster and added backloggd and serializd to it. use the branch add-serializd+backloggd
+Now you can review pretty much all media and it posts to your followers on bluesky with pretty embed links
+Use [The modiified branch of the Bluesky crossposter](https://github.com/stephenrberg/bluesky-crossposter) and it sends those posts to twitter, instagram, threads and mastodon! use the branch stephenrberg-features
+this branch also cuts out bluesky exclusive hashtags and will use your first hashtag as the topic on threads. It also resizes images right for instagram
+
 # Letterboxd-BlueSky-Poster
 [![Docker Hub](https://img.shields.io/static/v1.svg?color=086dd7&labelColor=555555&logoColor=ffffff&label=&message=docker%20hub&logo=Docker)](https://hub.docker.com/r/finiteui/letterboxd-bluesky-poster)
 
