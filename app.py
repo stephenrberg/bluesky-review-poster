@@ -4,7 +4,7 @@ from BlueSky import BlueSky
 from datetime import datetime
 from time import mktime, sleep
 import os
-import gc
+import pickle
 import dotenv
 from atproto import Client, client_utils
 import re
@@ -12,6 +12,29 @@ from bs4 import BeautifulSoup
 from letterboxd import check_letterboxd_feed
 from backloggd import check_backloggd_feed
 from serializd import check_serializd_feed
+
+QUEUE_FILE = "pending_posts_queue.pkl"
+
+def save_queue(queue):
+    """Saves the current backlog state to a local file."""
+    try:
+        with open(QUEUE_FILE, "wb") as f:
+            pickle.dump(queue, f)
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error saving queue to disk: {e}")
+
+def load_queue():
+    """Loads the backlog state from disk if it exists."""
+    if os.path.exists(QUEUE_FILE):
+        try:
+            with open(QUEUE_FILE, "rb") as f:
+                queue = pickle.load(f)
+                if isinstance(queue, list) and len(queue) > 0:
+                    print(f"Restored {len(queue)} pending post(s) from persistent storage.")
+                    return queue
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error loading queue from disk: {e}")
+    return []
 
 def run():
     print('Process starting. Initializing...')
@@ -58,15 +81,76 @@ def run():
     if valid:
         print('Configuration is valid.')
         print('Beginning process loop... (no further logs unless posts are made)')
+        
+        posts_to_make = load_queue()
+        
+        BASE_SLEEP = 300      # Normal operations: 5 minutes
+        BASE_BACKOFF = 1800    # Initial firewall cool-down unit: 30 minutes
+        MAX_BACKOFF = 14400    # Hard ceiling: 4 hours max sleep so it doesn't sleep forever
+        backoff_factor = 1
+        current_sleep = BASE_SLEEP
+
         while True:
-            with BlueSky(bluesky_user, bluesky_app_password) as bsky_client: #keep bluesky client for entire load of actions - then free it
-                if letterboxd_valid:
-                    check_letterboxd_feed(letterboxd_account, bsky_client)
-                if backloggd_valid:
-                    check_backloggd_feed(backloggd_account, bsky_client)
-                if serializd_valid:
-                    check_serializd_feed(serializd_account, bsky_client)
-            sleep(300) # wait 5 minutes
+            new_items = []
+            if letterboxd_valid:
+                try:
+                    new_items.extend(check_letterboxd_feed(letterboxd_account))
+                except Exception as e:
+                    print(f"Error reading Letterboxd: {e}")
+                    
+            if backloggd_valid:
+                try:
+                    new_items.extend(check_backloggd_feed(backloggd_account))
+                except Exception as e:
+                    print(f"Error reading Backloggd: {e}")
+                    
+            if serializd_valid:
+                try:
+                    new_items.extend(check_serializd_feed(serializd_account))
+                except Exception as e:
+                    print(f"Error reading Serializd: {e}")
+
+            if new_items:
+                posts_to_make.extend(new_items)
+                save_queue(posts_to_make)
+            
+            if posts_to_make:
+                try:
+                    with BlueSky(bluesky_user, bluesky_app_password) as bsky_client:
+                        for post in list(posts_to_make):
+                            bsky_client.post_with_link_embed(
+                                contents=post['text_builder'], 
+                                link=post['link'], 
+                                image_url=post.get('image_url'), 
+                                padding=post.get('padding', False)
+                            )
+                            posts_to_make.remove(post)
+                            save_queue(posts_to_make)
+                    print("Batch processing complete. Session closed and memory cleared.")
+                    current_sleep = BASE_SLEEP
+                except Exception as bsky_error:
+                    err_str = str(bsky_error)
+                    err_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Smart dynamic backoff check for 403 or 429 errors
+                    if "403" in err_str or "429" in err_str or "Unauthorized" in err_str:
+                        calculated_backoff = BASE_BACKOFF * backoff_factor
+                        current_sleep = min(calculated_backoff, MAX_BACKOFF)
+                        
+                        print(f"\n[{err_time}] [CRITICAL] BlueSky rate limit/firewall detected: {bsky_error}")
+                        print(f"Consecutive failure count: {backoff_factor}")
+                        print(f"Backing off exponentially! Sleeping for {current_sleep // 60} minutes to clear IP.")
+                        
+                        # Double the factor for the next consecutive loop failure
+                        backoff_factor *= 2
+                    else:
+                        current_sleep = BASE_SLEEP
+                        print(f"\n[{err_time}] [WARNING] BlueSky broadcast failed: {bsky_error}")
+                        
+                    print(f"Keeping {len(posts_to_make)} post(s) safely stored in persistent cache file.\n")
+            else:
+                current_sleep = BASE_SLEEP
+            sleep(current_sleep) # wait 5 minutes
 
     else:
         print('Could not run due to missing keys. Aborting program...')

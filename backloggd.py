@@ -20,7 +20,9 @@ def extractStatus(description):
         return "played"
     return "reviewed"
 
-def check_backloggd_feed(backloggd_account, bsky_client):
+def check_backloggd_feed(backloggd_account):
+    pending_posts = []
+
     registry = ConfigurationFile('backloggd-registry')
 
     rss_url = f'https://backloggd.com/u/{backloggd_account}/reviews/rss/'
@@ -115,7 +117,12 @@ def check_backloggd_feed(backloggd_account, bsky_client):
             post_text = tb.build_text()
             registry.setValue('last_post_contents', post_text)
             print(f'Sending post [{post_text}] (because {change_reason}): url = {item.link}')
-            bsky_client.post_with_link_embed(tb, item.link, image_url)
+            pending_posts.append({
+                'text_builder': tb,
+                'link': item.link,
+                'image_url': image_url,
+                'padding': True # Force box-art padding rules
+            })
             
             # Update state_map with the NEW data
             state_map[guid] = {"status": current_status, "rating": current_rating}
@@ -127,3 +134,4 @@ def check_backloggd_feed(backloggd_account, bsky_client):
                 registry.setValue('last_post', last_post.isoformat())
 
     registry.setValue('last_process', datetime.now().astimezone().isoformat())
+    return pending_posts

@@ -8,8 +8,8 @@ import re
 from bs4 import BeautifulSoup
 
 
-def check_letterboxd_feed(letterboxd_account, bsky_client):
-    
+def check_letterboxd_feed(letterboxd_account):
+    pending_posts = []
     registry = ConfigurationFile('letterboxd-registry')
 
     #now grab rss feed
@@ -64,7 +64,12 @@ def check_letterboxd_feed(letterboxd_account, bsky_client):
             post_text = tb.build_text()
             registry.setValue('last_post_contents', post_text)
             print(f'Sending post: [{post_text}]')
-            bsky_client.post_with_link_embed(tb, item.link)
+            pending_posts.append({
+                'text_builder': tb,
+                'link': item.link,
+                'image_url': None,      # Letterboxd standard embeds scrape the cover automatically
+                'padding': False
+            })
 
             registry.setValue('total_posts', registry.getValue('total_posts', 0) + 1)
         else:
@@ -73,3 +78,4 @@ def check_letterboxd_feed(letterboxd_account, bsky_client):
     if posted:
         registry.setValue('last_post', datetime.now().astimezone())
     registry.setValue('last_process', datetime.now().astimezone())
+    return pending_posts

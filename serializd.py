@@ -8,8 +8,8 @@ import dotenv
 import re
 from atproto import client_utils
 
-def check_serializd_feed(serializd_account, bsky_client):
-    
+def check_serializd_feed(serializd_account):
+    pending_posts = []
     registry = ConfigurationFile('serializd-registry')
 
     # Essential headers to avoid 403 Forbidden from Serializd
@@ -114,7 +114,12 @@ def check_serializd_feed(serializd_account, bsky_client):
             
             # 5. Send to BlueSky
             print(f'Sending post: [{tb.build_text()}] {review_link}')
-            bsky_client.post_with_link_embed(tb, review_link, image_url)
+            pending_posts.append({
+                'text_builder': tb,
+                'link': review_link,
+                'image_url': image_url,
+                'padding': True # Vertical TV posters need padding!
+            })
 
             # Track total stats
             registry.setValue('total_posts', registry.getValue('total_posts', 0) + 1)
@@ -127,3 +132,4 @@ def check_serializd_feed(serializd_account, bsky_client):
         registry.setValue('last_post', datetime.now(timezone.utc).isoformat())
 
     registry.setValue('last_process', datetime.now(timezone.utc).isoformat())
+    return pending_posts
