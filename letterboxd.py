@@ -1,12 +1,9 @@
 import feedparser
 from ConfigurationFile import ConfigurationFile
-from BlueSky import BlueSky
 from datetime import datetime, timezone, timedelta
-from time import mktime, sleep
-from atproto import Client, client_utils
+from atproto import client_utils
 import re
 from bs4 import BeautifulSoup
-
 
 def check_letterboxd_feed(letterboxd_account):
     pending_posts = []

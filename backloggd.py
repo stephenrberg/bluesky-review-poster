@@ -1,14 +1,9 @@
 import feedparser
 from ConfigurationFile import ConfigurationFile
-from BlueSky import BlueSky
 from datetime import datetime, timezone, timedelta
-from time import mktime, sleep
-import os
-import dotenv
-from atproto import Client, client_utils
+from time import mktime
+from atproto import client_utils
 import re
-import requests
-import io
 
 def extractStatus(description):
     desc = description.lower()

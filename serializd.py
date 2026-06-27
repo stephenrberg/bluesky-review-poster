@@ -1,10 +1,7 @@
 import requests
 from ConfigurationFile import ConfigurationFile
-from BlueSky import BlueSky
 from datetime import datetime, timezone, timedelta
 from time import sleep
-import os
-import dotenv
 import re
 from atproto import client_utils
 

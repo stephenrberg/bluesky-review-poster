@@ -25,15 +25,15 @@ class BlueSky:
         self.session = None
         self.client = None
         
-    def post_with_link_embed(self, contents, link, image_url=None, padding=False):
-        title = ""
-        description = ""
-        thumbnail = None  # FIX: Pre-initialize variable to prevent NameError scope crashes
+    def post_with_link_embed(self, contents, link, image_url=None, padding=False, title="", description=""):
+        thumbnail = None
 
         # Always scrape details first
         scraped_title, scraped_description, embedded_thumbnail = self.get_embed_details(link)
-        title = scraped_title
-        description = scraped_description
+        if(scraped_title != ''):
+            title = scraped_title
+        if(scraped_description != ''):
+            description = scraped_description
 
         if embedded_thumbnail:
             thumbnail = embedded_thumbnail  # Use scraped thumbnail if it exists

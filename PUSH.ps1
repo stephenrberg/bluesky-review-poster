@@ -8,6 +8,8 @@ $syncItems = @(
     "backloggd.py",
     "letterboxd.py",
     "serializd.py",
+    "goodreads.py",
+    "Auth.py",
     "requirements.txt"
 )
 

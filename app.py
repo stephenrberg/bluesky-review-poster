@@ -12,6 +12,9 @@ from bs4 import BeautifulSoup
 from letterboxd import check_letterboxd_feed
 from backloggd import check_backloggd_feed
 from serializd import check_serializd_feed
+from goodreads import check_goodreads_feed
+import Auth
+
 
 QUEUE_FILE = "pending_posts_queue.pkl"
 
@@ -50,30 +53,36 @@ def run():
     else:
         print("Running in Docker...")
 
-    letterboxd_account = os.getenv('LETTERBOXD_ACCOUNT')
+    letterboxd_account = Auth.LETTERBOXD_ACCOUNT
     letterboxd_valid = True
     if letterboxd_account == '' or letterboxd_account is None:
         letterboxd_valid = False
         print("Optional key [LETTERBOXD_ACCOUNT] missing from configuration file [.env]")
 
-    serializd_account = os.getenv('SERIALIZD_ACCOUNT')
+    serializd_account = Auth.SERIALIZD_ACCOUNT
     serializd_valid = True
     if serializd_account == '' or serializd_account is None:
         serializd_valid = False
         print("Optional key [SERIALIZD_ACCOUNT] missing from configuration file [.env]")
 
-    backloggd_account = os.getenv('BACKLOGGD_ACCOUNT')
+    backloggd_account = Auth.BACKLOGGD_ACCOUNT
     backloggd_valid = True
     if backloggd_account == '' or backloggd_account is None:
         backloggd_valid = False
         print("Optional key [BACKLOGGD_ACCOUNT] missing from configuration file [.env]")
 
-    bluesky_user = os.getenv('BLUESKY_USERNAME')
+    goodreads_id = Auth.GOODREADS_ID
+    goodreads_valid = True
+    if goodreads_id == '' or goodreads_id is None:
+        goodreads_valid = False
+        print("Optional key [GOODREADS_ID] missing from configuration file [.env]")
+
+    bluesky_user = Auth.BLUESKY_USERNAME
     if bluesky_user == '' or bluesky_user is None:
         valid = False
         print("Error: Required key [BLUESKY_USERNAME] missing from configuration file [.env]")
 
-    bluesky_app_password = os.getenv('BLUESKY_APP_PASSWORD')
+    bluesky_app_password = Auth.BLUESKY_APP_PASSWORD
     if bluesky_app_password == '' or bluesky_app_password is None:
         valid = False
         print("Error: Required key [BLUESKY_APP_PASSWORD] missing from configuration file [.env]")
@@ -110,6 +119,12 @@ def run():
                 except Exception as e:
                     print(f"Error reading Serializd: {e}")
 
+            if goodreads_valid:
+                try:
+                    new_items.extend(check_goodreads_feed(goodreads_id))
+                except Exception as e:
+                    print(f"Error reading Serializd: {e}")
+
             if new_items:
                 posts_to_make.extend(new_items)
                 save_queue(posts_to_make)
@@ -122,7 +137,9 @@ def run():
                                 contents=post['text_builder'], 
                                 link=post['link'], 
                                 image_url=post.get('image_url'), 
-                                padding=post.get('padding', False)
+                                padding=post.get('padding', False),
+                                title=post.get('title', ''),
+                                description=post.get('description', '')
                             )
                             posts_to_make.remove(post)
                             save_queue(posts_to_make)
