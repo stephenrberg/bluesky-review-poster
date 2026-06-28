@@ -14,6 +14,8 @@ from backloggd import check_backloggd_feed
 from serializd import check_serializd_feed
 from goodreads import check_goodreads_feed
 import Auth
+import alerts
+from alerts import send_failure_alert
 
 
 QUEUE_FILE = "pending_posts_queue.pkl"
@@ -106,24 +108,28 @@ def run():
                     new_items.extend(check_letterboxd_feed(letterboxd_account))
                 except Exception as e:
                     print(f"Error reading Letterboxd: {e}")
+                    send_failure_alert('letterboxd', e)
                     
             if backloggd_valid:
                 try:
                     new_items.extend(check_backloggd_feed(backloggd_account))
                 except Exception as e:
                     print(f"Error reading Backloggd: {e}")
+                    send_failure_alert('backloggd', e)
                     
             if serializd_valid:
                 try:
                     new_items.extend(check_serializd_feed(serializd_account))
                 except Exception as e:
                     print(f"Error reading Serializd: {e}")
-
+                    send_failure_alert('serializd', e)
+                    
             if goodreads_valid:
                 try:
                     new_items.extend(check_goodreads_feed(goodreads_id))
                 except Exception as e:
-                    print(f"Error reading Serializd: {e}")
+                    print(f"Error reading goodreads: {e}")
+                    send_failure_alert('goodreads', e)
 
             if new_items:
                 posts_to_make.extend(new_items)
@@ -148,6 +154,7 @@ def run():
                 except Exception as bsky_error:
                     err_str = str(bsky_error)
                     err_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    send_failure_alert('bluesky', bsky_error)
                     
                     # Smart dynamic backoff check for 403 or 429 errors
                     if "403" in err_str or "429" in err_str or "Unauthorized" in err_str:
