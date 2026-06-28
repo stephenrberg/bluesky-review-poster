@@ -17,6 +17,7 @@ $syncItems = @(
     "serializd.py",
     "goodreads.py",
     "Auth.py",
+    "alerts.py",
     "requirements.txt"
 )
 
