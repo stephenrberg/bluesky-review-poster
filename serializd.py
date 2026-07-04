@@ -62,6 +62,11 @@ def check_serializd_feed(serializd_account):
             season_name = current_season.get('name', None) if current_season else None
             ep_num = item.get('episodeNumber', None)
             ep_name = item.get('episodeName', None)
+            current_episode = None
+            if current_season and 'episodes' in current_season and ep_num:
+                # Find the specific episode from the season's episode list
+                episodes_list = current_season.get('episodes', [])
+                current_episode = next((e for e in episodes_list if e.get('episodeNumber') == ep_num), None)
             
             # Build the display title
             display_title = f"{show_name}"
@@ -100,8 +105,11 @@ def check_serializd_feed(serializd_account):
 
             # --- POSTER PATH LOGIC ---
             # Prioritize the specific Season Poster, fallback to Show Banner
+            # New hierarchy: Episode Still > Season Poster > Show Banner
             poster_path = None
-            if current_season and 'posterPath' in current_season and current_season['posterPath']:
+            if current_episode and 'stillPath' in current_episode and current_episode['stillPath']:
+                poster_path = current_episode['stillPath']
+            elif current_season and 'posterPath' in current_season and current_season['posterPath']:
                 poster_path = current_season['posterPath']
             else:
                 poster_path = item.get('showBannerImage')
