@@ -101,8 +101,8 @@ def check_serializd_feed(serializd_account):
             # --- POSTER PATH LOGIC ---
             # Prioritize the specific Season Poster, fallback to Show Banner
             poster_path = None
-            if current_season and current_season.get('posterPath'):
-                poster_path = current_season.get('posterPath')
+            if current_season and 'posterPath' in current_season and current_season['posterPath']:
+                poster_path = current_season['posterPath']
             else:
                 poster_path = item.get('showBannerImage')
 
