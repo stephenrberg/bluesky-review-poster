@@ -55,25 +55,24 @@ def check_serializd_feed(serializd_account):
             stars_str = ('★' * full_stars) + half_star if rating_val > 0 else "No rating"
 
             # 2. Get Season and Episode info
-            season_id = item.get('seasonId')
-            seasons = item.get('showSeasons', [])
-            current_season = next((s for s in seasons if s['id'] == season_id), None)
+            raw_season_id = item.get('seasonId')
+            season_id = int(raw_season_id) if raw_season_id is not None else None
             
-            season_name = current_season.get('name', None) if current_season else None
-            ep_num = item.get('episodeNumber', None)
-            ep_name = item.get('episodeName', None)
-            current_episode = None
-            if current_season and 'episodes' in current_season and ep_num:
-                # Find the specific episode from the season's episode list
-                episodes_list = current_season.get('episodes', [])
-                current_episode = next((e for e in episodes_list if e.get('episodeNumber') == ep_num), None)
+            seasons = item.get('showSeasons', [])
+            current_season = next((s for s in seasons if s.get('id') == season_id), None)
+            
+            season_name = current_season.get('name') if current_season else None
+            ep_num = item.get('episodeNumber')
+            ep_name = item.get('episodeName')
             
             # Build the display title
             display_title = f"{show_name}"
             if season_name:
                 display_title += f" - {season_name}"
-                if ep_num:
-                    display_title += f" (Ep {ep_num}: {ep_name})"
+            if ep_num and ep_name:
+                display_title += f" (Ep {ep_num}: {ep_name})"
+            elif ep_num:
+                display_title += f" (Ep {ep_num})"
 
             # 3. Create the BlueSky post body
             verb = "I rewatched" if item.get('isRewatch') == True else "I watched"
@@ -105,11 +104,8 @@ def check_serializd_feed(serializd_account):
 
             # --- POSTER PATH LOGIC ---
             # Prioritize the specific Season Poster, fallback to Show Banner
-            # New hierarchy: Episode Still > Season Poster > Show Banner
             poster_path = None
-            if current_episode and 'stillPath' in current_episode and current_episode['stillPath']:
-                poster_path = current_episode['stillPath']
-            elif current_season and 'posterPath' in current_season and current_season['posterPath']:
+            if current_season and current_season.get('posterPath'):
                 poster_path = current_season['posterPath']
             else:
                 poster_path = item.get('showBannerImage')
@@ -118,7 +114,7 @@ def check_serializd_feed(serializd_account):
             image_url = f"https://image.tmdb.org/t/p/w780{poster_path}" if poster_path else None
             
             # 5. Send to BlueSky
-            print(f'Sending post: [{tb.build_text()}] {review_link}')
+            print(f'Sending post: [{tb.build_text()}] {review_link} {image_url}')
             pending_posts.append({
                 'text_builder': tb,
                 'link': review_link,

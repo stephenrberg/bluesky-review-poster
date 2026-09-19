@@ -138,7 +138,9 @@ def run():
             if posts_to_make:
                 try:
                     with BlueSky(bluesky_user, bluesky_app_password) as bsky_client:
-                        for post in list(posts_to_make):
+                        for i, post in enumerate(list(posts_to_make)):
+                            if i > 0:
+                                sleep(15)  # Stagger consecutive posts to avoid rate-limits / Cloudflare 403s
                             bsky_client.post_with_link_embed(
                                 contents=post['text_builder'], 
                                 link=post['link'], 

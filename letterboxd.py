@@ -41,7 +41,12 @@ def check_letterboxd_feed(letterboxd_account):
 
             raw_desc = item.description
             soup = BeautifulSoup(raw_desc, "html.parser")
-            clean_text = soup.get_text()
+            
+            # --- EXTRACT POSTER IMAGE FOR FALLBACK ---
+            img_tag = soup.find('img')
+            poster_url = img_tag['src'] if img_tag and 'src' in img_tag.attrs else None
+
+            clean_text = soup.get_text().strip()
             custom_tags = re.findall(r"#(\w+)", clean_text)
 
             tags = custom_tags + tags
@@ -56,15 +61,21 @@ def check_letterboxd_feed(letterboxd_account):
             for i, tag in enumerate(tags):
                 tb.tag(f"#{tag}", tag)
                 if i < len(tags) - 1:
-                    tb.text(" ") # Add space between tags
+                    tb.text(" ")  # Add space between tags
 
             post_text = tb.build_text()
             registry.setValue('last_post_contents', post_text)
             print(f'Sending post: [{post_text}]')
+            
+            # --- PASS FALLBACK TITLE, DESCRIPTION, AND POSTER URL ---
+            fallback_desc = clean_text[:200] if clean_text else f"Review of {item.letterboxd_filmtitle} on Letterboxd."
+            
             pending_posts.append({
                 'text_builder': tb,
                 'link': item.link,
-                'image_url': None,      # Letterboxd standard embeds scrape the cover automatically
+                'title': f"{item.letterboxd_filmtitle} ({item.letterboxd_filmyear})",
+                'description': fallback_desc,
+                'image_url': poster_url,
                 'padding': False
             })
 
