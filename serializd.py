@@ -76,7 +76,7 @@ def check_serializd_feed(serializd_account):
 
             # 3. Create the BlueSky post body
             verb = "I rewatched" if item.get('isRewatch') == True else "I watched"
-            tags = ["TV", "TVSky", "Serializd", "NowWatching"]
+            tags = ["Serializd", "NowWatching", "TV", "TVSky"]
 
             # SCRAPE TAGS from reviewText
             review_content = item.get('reviewText', '')

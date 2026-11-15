@@ -85,7 +85,7 @@ def check_backloggd_feed(backloggd_account):
             rating_val = float(current_rating) / 2.0
             stars_str = ('★' * int(rating_val)) + ('½' if rating_val % 1 != 0 else '')
 
-            tags = ["gaming", "gamingsky", "backloggd"]
+            tags = ["Backloggd", "Gaming", "Gamingsky", "VideoGames"]
             extra_tags = re.findall(r"#(\w+)", item.description)
             status_keywords = ["finished", "completed", "abandoned", "dropped", "played", "reviewed"]
             

@@ -37,7 +37,7 @@ def check_letterboxd_feed(letterboxd_account):
             # Create the string (e.g., 3.5 becomes ★★★½)
             stars_str = ('★' * full_stars) + half_star
             # Define your tag string
-            tags = ["Letterboxd", "Film", "FilmSky", "Movie", "MovieSky", "NowWatching"]
+            tags = ["Letterboxd", "NowWatching", "Film", "FilmSky", "Movie", "MovieSky"]
 
             raw_desc = item.description
             soup = BeautifulSoup(raw_desc, "html.parser")

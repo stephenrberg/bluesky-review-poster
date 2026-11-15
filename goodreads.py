@@ -43,7 +43,7 @@ def check_goodreads_feed(goodreads_id):
             stars_str = f" {'★' * rating_val}" if rating_val > 0 else ""
 
             # 3. Setup core hashtags
-            tags = ["comics", "comicsky", "goodreads"]
+            tags = ["Goodreads", "Comics", "#Comicbooks", "Comicsky"]
 
             # 4. Optional: Extract custom tags from your written review box text
             raw_review = item.get('user_review', '')
